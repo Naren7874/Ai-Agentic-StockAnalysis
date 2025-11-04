@@ -1,28 +1,54 @@
-import React, { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Button } from './ui/button';
-import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
-import userImg from './../assets/user.jpg';
+import React, { useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Button } from "./ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
+import userImg from "./../assets/user.jpg";
+import { useAuth } from "../context/AuthContext";
 
 const Navbar = () => {
-  const user = true;
-
+  const { user, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  
-  const navigation = [
-    { name: 'Home', href: '/', current: location.pathname === '/' },
-    { name: 'Dashboard', href: '/dashboard', current: location.pathname === '/dashboard' },
-    { name: 'AI Agent', href: '/ai-agent', current: location.pathname === '/ai-agent' },
-    { name: 'Analysis', href: '/analysis', current: location.pathname === '/analysis' },
+
+  // Navigation items - only show protected routes when user is authenticated
+  const baseNavigation = [
+    { name: "Home", href: "/", current: location.pathname === "/" },
   ];
 
+  const protectedNavigation = [
+    {
+      name: "Dashboard",
+      href: "/dashboard",
+      current: location.pathname === "/dashboard",
+    },
+    {
+      name: "AI Agent",
+      href: "/ai-agent",
+      current: location.pathname === "/ai-agent",
+    },
+    {
+      name: "Analysis",
+      href: "/analysis",
+      current: location.pathname === "/analysis",
+    },
+  ];
+
+  // Combine navigation based on authentication
+  const navigation = user 
+    ? [...baseNavigation, ...protectedNavigation]
+    : baseNavigation;
+
   const userNavigation = [
-    { name: 'Your Profile', href: '#' },
-    { name: 'Settings', href: '#' },
-    { name: 'Sign out', href: '#' },
+    { name: "Your Profile", href: "/profile" },
+    { name: "Settings", href: "/settings" },
+    { name: "Sign out", action: "logout" },
   ];
 
   const handleNavigation = (href) => {
@@ -31,9 +57,17 @@ const Navbar = () => {
   };
 
   const handleSignOut = () => {
-    // Add your sign out logic here
-    console.log('User signed out');
+    logout();
     setIsOpen(false);
+    navigate("/");
+  };
+
+  const handleUserAction = (item) => {
+    if (item.action === "logout") {
+      handleSignOut();
+    } else {
+      handleNavigation(item.href);
+    }
   };
 
   return (
@@ -44,7 +78,10 @@ const Navbar = () => {
           <div className="flex items-center">
             {/* Logo */}
             <div className="flex-shrink-0 flex items-center">
-              <Link to="/" className="text-xl font-bold text-gray-900 hover:text-blue-600 transition-colors">
+              <Link
+                to="/"
+                className="text-xl font-bold text-gray-900 hover:text-blue-600 transition-colors"
+              >
                 AI Agent
               </Link>
             </div>
@@ -57,8 +94,8 @@ const Navbar = () => {
                   to={item.href}
                   className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors ${
                     item.current
-                      ? 'border-blue-500 text-gray-900'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      ? "border-blue-500 text-gray-900"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                   }`}
                 >
                   {item.name}
@@ -73,47 +110,50 @@ const Navbar = () => {
               /* Authenticated State - Desktop */
               <>
                 <div className="hidden md:flex items-center space-x-4">
+                  <span className="text-sm text-gray-700">
+                    Welcome, {user.username}
+                  </span>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0">
+                      <Button
+                        variant="ghost"
+                        className="relative h-8 w-8 rounded-full p-0"
+                      >
                         <div className="h-8 w-8 rounded-full overflow-hidden border border-gray-200">
-                          <img 
-                            className="h-full w-full object-cover" 
-                            src={userImg} 
-                            alt="User profile" 
+                          <img
+                            className="h-full w-full object-cover"
+                            src={userImg}
+                            alt="User profile"
                             onError={(e) => {
-                              e.target.style.display = 'none';
-                              e.target.nextSibling.style.display = 'flex';
+                              e.target.style.display = "none";
+                              e.target.nextSibling.style.display = "flex";
                             }}
                           />
                           {/* Fallback if image fails to load */}
-                          <div 
+                          <div
                             className="h-full w-full bg-blue-500 flex items-center justify-center hidden"
-                            style={{ display: 'none' }}
+                            style={{ display: "none" }}
                           >
-                            <span className="text-white text-sm font-medium">U</span>
+                            <span className="text-white text-sm font-medium">
+                              {user.username?.charAt(0).toUpperCase() || 'U'}
+                            </span>
                           </div>
                         </div>
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56" align="end" forceMount>
+                    <DropdownMenuContent
+                      className="w-56"
+                      align="end"
+                      forceMount
+                    >
                       {userNavigation.map((item) => (
                         <DropdownMenuItem key={item.name} asChild>
-                          {item.name === 'Sign out' ? (
-                            <button 
-                              onClick={handleSignOut}
-                              className="w-full text-left cursor-pointer"
-                            >
-                              {item.name}
-                            </button>
-                          ) : (
-                            <button 
-                              onClick={() => handleNavigation(item.href)}
-                              className="w-full text-left cursor-pointer"
-                            >
-                              {item.name}
-                            </button>
-                          )}
+                          <button
+                            onClick={() => handleUserAction(item)}
+                            className="w-full text-left cursor-pointer px-2 py-1.5 text-sm"
+                          >
+                            {item.name}
+                          </button>
                         </DropdownMenuItem>
                       ))}
                     </DropdownMenuContent>
@@ -123,17 +163,14 @@ const Navbar = () => {
             ) : (
               /* Unauthenticated State - Desktop */
               <div className="hidden md:flex items-center space-x-3">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
-                  onClick={() => navigate('/login')}
+                  onClick={() => navigate("/login")}
                 >
                   Login
                 </Button>
-                <Button 
-                  size="sm"
-                  onClick={() => navigate('/signup')}
-                >
+                <Button size="sm" onClick={() => navigate("/signup")}>
                   Sign Up
                 </Button>
               </div>
@@ -174,8 +211,8 @@ const Navbar = () => {
                             onClick={() => handleNavigation(item.href)}
                             className={`w-full text-left px-3 py-2 rounded-md text-base font-medium transition-colors ${
                               item.current
-                                ? 'bg-blue-50 text-blue-700'
-                                : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                                ? "bg-blue-50 text-blue-700"
+                                : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
                             }`}
                           >
                             {item.name}
@@ -188,30 +225,39 @@ const Navbar = () => {
                         <div className="border-t border-gray-200 pt-4">
                           <div className="flex items-center px-3 py-2 mb-2">
                             <div className="h-8 w-8 rounded-full overflow-hidden border border-gray-200 mr-3">
-                              <img 
-                                className="h-full w-full object-cover" 
-                                src={userImg} 
-                                alt="User profile" 
+                              <img
+                                className="h-full w-full object-cover"
+                                src={userImg}
+                                alt="User profile"
                                 onError={(e) => {
-                                  e.target.style.display = 'none';
-                                  e.target.nextSibling.style.display = 'flex';
+                                  e.target.style.display = "none";
+                                  e.target.nextSibling.style.display = "flex";
                                 }}
                               />
                               {/* Fallback if image fails to load */}
-                              <div 
+                              <div
                                 className="h-full w-full bg-blue-500 flex items-center justify-center hidden"
-                                style={{ display: 'none' }}
+                                style={{ display: "none" }}
                               >
-                                <span className="text-white text-sm font-medium">U</span>
+                                <span className="text-white text-sm font-medium">
+                                  {user.username?.charAt(0).toUpperCase() || 'U'}
+                                </span>
                               </div>
                             </div>
-                            <span className="text-sm font-medium text-gray-700">User Name</span>
+                            <div className="flex flex-col">
+                              <span className="text-sm font-medium text-gray-700">
+                                {user.username}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {user.email}
+                              </span>
+                            </div>
                           </div>
                           <div className="px-2 space-y-1">
                             {userNavigation.map((item) => (
                               <button
                                 key={item.name}
-                                onClick={() => item.name === 'Sign out' ? handleSignOut() : handleNavigation(item.href)}
+                                onClick={() => handleUserAction(item)}
                                 className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900"
                               >
                                 {item.name}
@@ -225,16 +271,16 @@ const Navbar = () => {
                     {/* Auth section for mobile when unauthenticated */}
                     {!user && (
                       <div className="border-t border-gray-200 p-4 space-y-3">
-                        <Button 
-                          className="w-full" 
-                          onClick={() => handleNavigation('/signup')}
+                        <Button
+                          className="w-full"
+                          onClick={() => handleNavigation("/signup")}
                         >
                           Sign Up
                         </Button>
-                        <Button 
-                          variant="outline" 
-                          className="w-full" 
-                          onClick={() => handleNavigation('/login')}
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => handleNavigation("/login")}
                         >
                           Login
                         </Button>
